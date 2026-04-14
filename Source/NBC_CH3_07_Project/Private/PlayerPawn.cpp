@@ -1,6 +1,9 @@
-
+ï»¿
 #include "PlayerPawn.h"
 #include "Components/SphereComponent.h"
+#include "MyPlayerController.h"
+#include "EnhancedInputComponent.h"
+#include "GameFramework/FloatingPawnMovement.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 
@@ -8,36 +11,38 @@ APlayerPawn::APlayerPawn()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	// SphereÄÄÆ÷³ÍÆ® »ı¼º
+	// Sphereì»´í¬ë„ŒíŠ¸ ìƒì„±
 	SphereComp = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionSphere"));
-	// Sphere ÄÄÆ÷³ÍÆ®¸¦ ·çÆ® ÄÄÆ÷³ÍÆ®·Î ÁöÁ¤
+	// Sphere ì»´í¬ë„ŒíŠ¸ë¥¼ ë£¨íŠ¸ ì»´í¬ë„ŒíŠ¸ë¡œ ì§€ì •
 	SetRootComponent(SphereComp);
-	// SimulatePhysics¸¦ false·Î ¼³Á¤
+	// SimulatePhysicsë¥¼ falseë¡œ ì„¤ì •
 	SphereComp->SetSimulatePhysics(false);
 
-	// ½ºÄÌ·¹Å» ¸Ş½¬ »ı¼º
+	// ìŠ¤ì¼ˆë ˆíƒˆ ë©”ì‰¬ ìƒì„±
 	SkeletalMeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMesh"));
-	// ½ºÄÌ·¹Å» ¸Ş½¬¸¦ ·çÆ® ÄÄÆ÷³ÍÆ® (SphereComp)¿¡ ºÎÂø
+	// ìŠ¤ì¼ˆë ˆíƒˆ ë©”ì‰¬ë¥¼ ë£¨íŠ¸ ì»´í¬ë„ŒíŠ¸ (SphereComp)ì— ë¶€ì°©
 	SkeletalMeshComp->SetupAttachment(SphereComp);
-	// SimulatePhysics¸¦ false·Î ¼³Á¤
+	// SimulatePhysicsë¥¼ falseë¡œ ì„¤ì •
 	SkeletalMeshComp->SetSimulatePhysics(false);
 
-	// ½ºÇÁ¸µ ¾Ï »ı¼º
+	// ìŠ¤í”„ë§ ì•” ìƒì„±
 	SpringArmComp = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
-	// ½ºÇÁ¸µ ¾ÏÀ» ·çÆ® ÄÄÆ÷³ÍÆ® (SphereComp)¿¡ ºÎÂø
+	// ìŠ¤í”„ë§ ì•”ì„ ë£¨íŠ¸ ì»´í¬ë„ŒíŠ¸ (SphereComp)ì— ë¶€ì°©
 	SpringArmComp->SetupAttachment(SphereComp);
-	// Ä³¸¯ÅÍ¿Í Ä«¸Ş¶ó »çÀÌÀÇ °Å¸® ±âº»°ª 300À¸·Î ¼³Á¤
+	// ìºë¦­í„°ì™€ ì¹´ë©”ë¼ ì‚¬ì´ì˜ ê±°ë¦¬ ê¸°ë³¸ê°’ 300ìœ¼ë¡œ ì„¤ì •
 	SpringArmComp->TargetArmLength = 300.0f;
-	// ÄÁÆ®·Ñ·¯ È¸Àü¿¡ µû¶ó ½ºÇÁ¸µ ¾Ïµµ È¸ÀüÇÏµµ·Ï ¼³Á¤
+	// ì»¨íŠ¸ë¡¤ëŸ¬ íšŒì „ì— ë”°ë¼ ìŠ¤í”„ë§ ì•”ë„ íšŒì „í•˜ë„ë¡ ì„¤ì •
 	SpringArmComp->bUsePawnControlRotation = true;
 
-	// Ä«¸Ş¶ó ÄÄÆ÷³ÍÆ® »ı¼º
+	// ì¹´ë©”ë¼ ì»´í¬ë„ŒíŠ¸ ìƒì„±
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	// ½ºÇÁ¸µ ¾ÏÀÇ ¼ÒÄÏ À§Ä¡¿¡ Ä«¸Ş¶ó¸¦ ºÎÂø
+	// ìŠ¤í”„ë§ ì•”ì˜ ì†Œì¼“ ìœ„ì¹˜ì— ì¹´ë©”ë¼ë¥¼ ë¶€ì°©
 	CameraComp->SetupAttachment(SpringArmComp, USpringArmComponent::SocketName);
-	// Ä«¸Ş¶ó´Â ½ºÇÁ¸µ ¾ÏÀÇ È¸ÀüÀ» µû¸£¹Ç·Î PawnControlRotationÀº ²¨µÒ
+	// ì¹´ë©”ë¼ëŠ” ìŠ¤í”„ë§ ì•”ì˜ íšŒì „ì„ ë”°ë¥´ë¯€ë¡œ PawnControlRotationì€ êº¼ë‘ 
 	CameraComp->bUsePawnControlRotation = false;
 
+	// ì´ë™ ì»´í¬ë„ŒíŠ¸ ìƒì„± (ë¶€ì°©í•  í•„ìš” ì—†ì´ ìƒì„±ë§Œ í•˜ë©´ ìë™ìœ¼ë¡œ Rootë¥¼ ì œì–´í•©ë‹ˆë‹¤)
+	//MovementComp = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("MovementComp"));
 }
 
 void APlayerPawn::Tick(float DeltaTime)
@@ -50,5 +55,90 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	{
+		if (AMyPlayerController* PlayerController = Cast<AMyPlayerController>(GetController()))
+		{
+			if (PlayerController->MoveAction)
+			{
+				EnhancedInput->BindAction(
+					PlayerController->MoveAction,
+					ETriggerEvent::Triggered,
+					this,
+					&APlayerPawn::Move
+				);
+			}
+
+			if (PlayerController->LookAction)
+			{
+				EnhancedInput->BindAction(
+					PlayerController->LookAction,
+					ETriggerEvent::Triggered,
+					this,
+					&APlayerPawn::Look
+				);
+			}
+		}
+	}
+
 }
 
+void APlayerPawn::Move(const FInputActionValue& value)
+{
+	if (!Controller) return;
+
+	const FVector2D MoveInput = value.Get<FVector2D>();
+
+	if (MoveInput.IsNearlyZero())	return;
+
+	float moveSpeed = 500.0f;
+
+	FVector DeltaLocation(MoveInput.X * moveSpeed * GetWorld()->GetDeltaSeconds(),
+						  MoveInput.Y * moveSpeed * GetWorld()->GetDeltaSeconds(),
+						  0.0f);
+
+	AddActorLocalOffset(DeltaLocation, true);
+
+	/*if (!FMath::IsNearlyZero(MoveInput.X))
+	{
+		AddMovementInput(GetActorForwardVector(), MoveInput.X);
+
+	}
+
+	if (!FMath::IsNearlyZero(MoveInput.Y))
+	{
+		AddMovementInput(GetActorRightVector(), MoveInput.Y);
+	}*/
+}
+
+void APlayerPawn::Look(const FInputActionValue& value)
+{
+	FVector2D LookInput = value.Get<FVector2D>();
+
+	float Speed = 50.0f;
+
+	FRotator DeltaYaw(0.0f, LookInput.X * Speed * GetWorld()->GetDeltaSeconds(), 0.0f);
+	AddActorLocalRotation(DeltaYaw);
+
+	/*float YawAmount = LookInput.X * Speed * GetWorld()->GetDeltaSeconds();
+	FRotator CurrentActorRotation = GetActorRotation();
+	CurrentActorRotation.Yaw += YawAmount;
+	SetActorRotation(CurrentActorRotation);*/
+
+	if (SpringArmComp)
+	{
+		FRotator DeltaPitch(-LookInput.Y * Speed * GetWorld()->GetDeltaSeconds(), 0.0f, 0.0f);
+		SpringArmComp->AddLocalRotation(DeltaPitch);
+
+		/*float PitchAmount = -LookInput.Y * Speed * GetWorld()->GetDeltaSeconds();
+		FRotator NewSpringArmRotation = SpringArmComp->GetRelativeRotation();
+		float TargetPitch = NewSpringArmRotation.Pitch + PitchAmount;
+
+		NewSpringArmRotation.Pitch = FMath::Clamp(TargetPitch, -80.0f, 80.0f);
+		SpringArmComp->AddRelativeRotation(NewSpringArmRotation);*/
+	}
+	
+
+	//AddControllerYawInput(LookInput.X);
+	//AddControllerPitchInput(LookInput.Y);
+}

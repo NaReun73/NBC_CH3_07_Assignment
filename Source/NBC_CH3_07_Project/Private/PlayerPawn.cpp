@@ -9,7 +9,7 @@
 
 APlayerPawn::APlayerPawn()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	// Sphere컴포넌트 생성
 	SphereComp = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionSphere"));
@@ -54,6 +54,35 @@ void APlayerPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// 호버링 확인
+	// 상하 이동 입력이 없으면 위치 고정
+	if (FMath::IsNearlyZero(UpDownInput))
+	{
+		VerticalVelocity = FMath::FInterpTo(VerticalVelocity, 0.0f, DeltaTime, 2.0f);
+		if (FMath::Abs(VerticalVelocity) < 1.0f) VerticalVelocity = 0.0f;
+	}
+	else
+	{
+		VerticalVelocity += (GravityStrength + (UpDownInput * 1200.0f)) * DeltaTime;
+	}
+
+	// UpDown 입력값 초기화 (초기화 안하면 계속 상승, 하강)
+	UpDownInput = 0.0f;;
+
+	// 속도 제한, 이동
+	VerticalVelocity = FMath::Clamp(VerticalVelocity, -1000.0f, 1000.0f);
+	FVector GravityDelta(0.0f, 0.0f, VerticalVelocity * DeltaTime);
+	FHitResult HitResult;
+	AddActorLocalOffset(GravityDelta, true, &HitResult);
+
+	// 충돌하면 속도 0
+	if (HitResult.IsValidBlockingHit())
+	{
+		if (HitResult.ImpactNormal.Z > 0.5f)
+		{
+			VerticalVelocity = 0.0f;
+		}
+	}
 }
 
 void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -118,6 +147,11 @@ void APlayerPawn::Move(const FInputActionValue& value)
 
 	float moveSpeed = 500.0f;
 
+	if (GetActorLocation().Z > 500.0f)
+	{
+		moveSpeed /= 2.0f;
+	}
+
 	FVector DeltaLocation(MoveInput.X * moveSpeed * GetWorld()->GetDeltaSeconds(),
 						  MoveInput.Y * moveSpeed * GetWorld()->GetDeltaSeconds(),
 						  0.0f);
@@ -127,7 +161,6 @@ void APlayerPawn::Move(const FInputActionValue& value)
 	/*if (!FMath::IsNearlyZero(MoveInput.X))
 	{
 		AddMovementInput(GetActorForwardVector(), MoveInput.X);
-
 	}
 
 	if (!FMath::IsNearlyZero(MoveInput.Y))
@@ -140,39 +173,39 @@ void APlayerPawn::Look(const FInputActionValue& value)
 {
 	FVector2D LookInput = value.Get<FVector2D>();
 	float DeltaTime = GetWorld()->GetDeltaSeconds();
-	float Speed = 50.0f;
+	float LookSpeed = 50.0f;
 
 	// 각도 제한 없을 떄
 	//FRotator DeltaYaw(0.0f, LookInput.X * Speed * DeltaTime, 0.0f);
 	//AddActorLocalRotation(DeltaYaw);
 
 	// 각도 제한 있을 때
-	float YawAmount = LookInput.X * Speed * DeltaTime;
+	float YawAmount = LookInput.X * LookSpeed * DeltaTime;
 	FRotator CurrentActorRotation = GetActorRotation();
-	CurrentActorRotation.Yaw += LookInput.X * Speed * DeltaTime;
+	CurrentActorRotation.Yaw += LookInput.X * LookSpeed * DeltaTime;
 	SetActorRotation(CurrentActorRotation);
 
 	// 드론일 경우
 	FRotator CurrentRot = GetActorRotation();
-	float NewPitch = CurrentRot.Pitch + (LookInput.Y * Speed * DeltaTime);
+	float NewPitch = CurrentRot.Pitch + (LookInput.Y * LookSpeed * DeltaTime);
 	CurrentRot.Pitch = FMath::Clamp(NewPitch, -45.0f, 45.0f);
 	SetActorRotation(CurrentRot);
 
 	// 사람일 경우
-	if (SpringArmComp)
-	{
-		// 각도 제한 없을 때
-		//FRotator DeltaPitch(-LookInput.Y * Speed * DeltaTime, 0.0f, 0.0f);
-		//SpringArmComp->AddLocalRotation(DeltaPitch);
+	//if (SpringArmComp)
+	//{
+	//	// 각도 제한 없을 때
+	//	//FRotator DeltaPitch(-LookInput.Y * Speed * DeltaTime, 0.0f, 0.0f);
+	//	//SpringArmComp->AddLocalRotation(DeltaPitch);
 
-		// 각도 제한 있을 때
-		/*float PitchAmount = -LookInput.Y * Speed * DeltaTime;
-		FRotator NewSpringArmRotation = SpringArmComp->GetRelativeRotation();
-		float TargetPitch = NewSpringArmRotation.Pitch + PitchAmount;
+	//	// 각도 제한 있을 때
+	//	float PitchAmount = -LookInput.Y * Speed * DeltaTime;
+	//	FRotator NewSpringArmRotation = SpringArmComp->GetRelativeRotation();
+	//	float TargetPitch = NewSpringArmRotation.Pitch + PitchAmount;
 
-		NewSpringArmRotation.Pitch = FMath::Clamp(TargetPitch, -80.0f, 80.0f);
-		SpringArmComp->SetRelativeRotation(NewSpringArmRotation);*/
-	}
+	//	NewSpringArmRotation.Pitch = FMath::Clamp(TargetPitch, -80.0f, 80.0f);
+	//	SpringArmComp->SetRelativeRotation(NewSpringArmRotation);
+	//}
 	
 	// 강의에서 나온 구현방법
 	//AddControllerYawInput(LookInput.X);
@@ -183,15 +216,19 @@ void APlayerPawn::UpDown(const FInputActionValue& value)
 {
 	if (!Controller) return;
 
-	float UpDownInput = value.Get<float>();
+	UpDownInput = value.Get<float>();
 
 	if (FMath::IsNearlyZero(UpDownInput))	return;
 
-	float Speed = 300.0f;
+	float Speed = 1300.0f;
 
-	FVector DeltaLocation(0.0f, 0.0f, UpDownInput * Speed * GetWorld()->GetDeltaSeconds());
+	// 중력 계산
+	VerticalVelocity += UpDownInput * Speed * GetWorld()->GetDeltaSeconds();
 
-	AddActorLocalOffset(DeltaLocation, true);
+	// 중력 X
+	/*FVector DeltaLocation(0.0f, 0.0f, UpDownInput * Speed * GetWorld()->GetDeltaSeconds());
+	AddActorLocalOffset(DeltaLocation, true);*/
+
 }
 
 void APlayerPawn::Tilt(const FInputActionValue& value)
@@ -202,10 +239,10 @@ void APlayerPawn::Tilt(const FInputActionValue& value)
 
 	if (FMath::IsNearlyZero(TiltInput)) return;
 
-	float Speed = 200.0f;
+	float TiltSpeed = 200.0f;
 
 	FRotator CurrentRot = GetActorRotation();
-	float NewRoll = CurrentRot.Roll + (TiltInput * Speed * GetWorld()->GetDeltaSeconds());
+	float NewRoll = CurrentRot.Roll + (TiltInput * TiltSpeed * GetWorld()->GetDeltaSeconds());
 	CurrentRot.Roll = FMath::Clamp(NewRoll, -45.0f, 45.0f);
 
 	SetActorRotation(CurrentRot);

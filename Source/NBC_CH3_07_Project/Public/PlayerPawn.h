@@ -60,9 +60,12 @@ protected:
 	UFUNCTION()
 	void Tilt(const FInputActionValue& value);
 
-	// 중력
+	// 중력 구현
 	float VerticalVelocity = 0.0f;
 	float GravityStrength = -980.0f;
+
+	// 호버링을 구현하기 위해 변수로 뺌
+	float UpDownInput;
 public:	
 	virtual void Tick(float DeltaTime) override;
 

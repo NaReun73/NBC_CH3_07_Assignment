@@ -4,8 +4,9 @@
 AMyPlayerController::AMyPlayerController()
 	: InputMappingContext(nullptr),
 	  MoveAction(nullptr),
-	  JumpAction(nullptr),
-	  LookAction(nullptr)
+	  LookAction(nullptr),
+	  UpDownAction(nullptr),
+	  TiltAction(nullptr)
 {
 
 }

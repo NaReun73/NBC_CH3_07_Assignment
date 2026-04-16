@@ -25,6 +25,11 @@ APlayerPawn::APlayerPawn()
 	// SimulatePhysics를 false로 설정
 	SkeletalMeshComp->SetSimulatePhysics(false);
 
+	// 스태틱 메쉬 (드론 적용을 위한 추가)
+	StaticMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
+	StaticMeshComp->SetupAttachment(SphereComp);
+	StaticMeshComp->SetSimulatePhysics(false);
+
 	// 스프링 암 생성
 	SpringArmComp = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	// 스프링 암을 루트 컴포넌트 (SphereComp)에 부착
@@ -78,6 +83,26 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 					&APlayerPawn::Look
 				);
 			}
+
+			if (PlayerController->UpDownAction)
+			{
+				EnhancedInput->BindAction(
+					PlayerController->UpDownAction,
+					ETriggerEvent::Triggered,
+					this,
+					&APlayerPawn::UpDown
+				);
+			}
+
+			if (PlayerController->TiltAction)
+			{
+				EnhancedInput->BindAction(
+					PlayerController->TiltAction,
+					ETriggerEvent::Triggered,
+					this,
+					&APlayerPawn::Tilt
+				);
+			}
 		}
 	}
 
@@ -114,31 +139,74 @@ void APlayerPawn::Move(const FInputActionValue& value)
 void APlayerPawn::Look(const FInputActionValue& value)
 {
 	FVector2D LookInput = value.Get<FVector2D>();
-
+	float DeltaTime = GetWorld()->GetDeltaSeconds();
 	float Speed = 50.0f;
 
-	FRotator DeltaYaw(0.0f, LookInput.X * Speed * GetWorld()->GetDeltaSeconds(), 0.0f);
-	AddActorLocalRotation(DeltaYaw);
+	// 각도 제한 없을 떄
+	//FRotator DeltaYaw(0.0f, LookInput.X * Speed * DeltaTime, 0.0f);
+	//AddActorLocalRotation(DeltaYaw);
 
-	/*float YawAmount = LookInput.X * Speed * GetWorld()->GetDeltaSeconds();
+	// 각도 제한 있을 때
+	float YawAmount = LookInput.X * Speed * DeltaTime;
 	FRotator CurrentActorRotation = GetActorRotation();
-	CurrentActorRotation.Yaw += YawAmount;
-	SetActorRotation(CurrentActorRotation);*/
+	CurrentActorRotation.Yaw += LookInput.X * Speed * DeltaTime;
+	SetActorRotation(CurrentActorRotation);
 
+	// 드론일 경우
+	FRotator CurrentRot = GetActorRotation();
+	float NewPitch = CurrentRot.Pitch + (LookInput.Y * Speed * DeltaTime);
+	CurrentRot.Pitch = FMath::Clamp(NewPitch, -45.0f, 45.0f);
+	SetActorRotation(CurrentRot);
+
+	// 사람일 경우
 	if (SpringArmComp)
 	{
-		FRotator DeltaPitch(-LookInput.Y * Speed * GetWorld()->GetDeltaSeconds(), 0.0f, 0.0f);
-		SpringArmComp->AddLocalRotation(DeltaPitch);
+		// 각도 제한 없을 때
+		//FRotator DeltaPitch(-LookInput.Y * Speed * DeltaTime, 0.0f, 0.0f);
+		//SpringArmComp->AddLocalRotation(DeltaPitch);
 
-		/*float PitchAmount = -LookInput.Y * Speed * GetWorld()->GetDeltaSeconds();
+		// 각도 제한 있을 때
+		/*float PitchAmount = -LookInput.Y * Speed * DeltaTime;
 		FRotator NewSpringArmRotation = SpringArmComp->GetRelativeRotation();
 		float TargetPitch = NewSpringArmRotation.Pitch + PitchAmount;
 
 		NewSpringArmRotation.Pitch = FMath::Clamp(TargetPitch, -80.0f, 80.0f);
-		SpringArmComp->AddRelativeRotation(NewSpringArmRotation);*/
+		SpringArmComp->SetRelativeRotation(NewSpringArmRotation);*/
 	}
 	
-
+	// 강의에서 나온 구현방법
 	//AddControllerYawInput(LookInput.X);
 	//AddControllerPitchInput(LookInput.Y);
+}
+
+void APlayerPawn::UpDown(const FInputActionValue& value)
+{
+	if (!Controller) return;
+
+	float UpDownInput = value.Get<float>();
+
+	if (FMath::IsNearlyZero(UpDownInput))	return;
+
+	float Speed = 300.0f;
+
+	FVector DeltaLocation(0.0f, 0.0f, UpDownInput * Speed * GetWorld()->GetDeltaSeconds());
+
+	AddActorLocalOffset(DeltaLocation, true);
+}
+
+void APlayerPawn::Tilt(const FInputActionValue& value)
+{
+	if (!Controller)	return;
+
+	float TiltInput = value.Get<float>();
+
+	if (FMath::IsNearlyZero(TiltInput)) return;
+
+	float Speed = 200.0f;
+
+	FRotator CurrentRot = GetActorRotation();
+	float NewRoll = CurrentRot.Roll + (TiltInput * Speed * GetWorld()->GetDeltaSeconds());
+	CurrentRot.Roll = FMath::Clamp(NewRoll, -45.0f, 45.0f);
+
+	SetActorRotation(CurrentRot);
 }

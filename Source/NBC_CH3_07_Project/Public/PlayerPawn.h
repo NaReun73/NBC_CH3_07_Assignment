@@ -30,6 +30,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USkeletalMeshComponent* SkeletalMeshComp;
 
+	// 스태틱 메시
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UStaticMeshComponent* StaticMeshComp;
+
 	// 스프링 암
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USpringArmComponent* SpringArmComp;
@@ -51,7 +55,14 @@ protected:
 	void Move(const FInputActionValue& value);
 	UFUNCTION()
 	void Look(const FInputActionValue& value);
+	UFUNCTION()
+	void UpDown(const FInputActionValue& value);
+	UFUNCTION()
+	void Tilt(const FInputActionValue& value);
 
+	// 중력
+	float VerticalVelocity = 0.0f;
+	float GravityStrength = -980.0f;
 public:	
 	virtual void Tick(float DeltaTime) override;
 

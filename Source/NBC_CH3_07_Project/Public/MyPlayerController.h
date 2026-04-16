@@ -24,13 +24,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputAction* MoveAction;
 
-	// IA_Jump를 지정할 변수
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
-	UInputAction* JumpAction;
-
 	// IA_Look를 지정할 변수
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	UInputAction* LookAction;
+
+	// IA_UpDown를 지정할 변수
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputAction* UpDownAction;
+
+	// IA_Tilt를 지정할 변수
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	UInputAction* TiltAction;
 
 	virtual void BeginPlay() override;
 };

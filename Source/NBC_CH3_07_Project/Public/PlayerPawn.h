@@ -66,6 +66,8 @@ protected:
 
 	// 호버링을 구현하기 위해 변수로 뺌
 	float UpDownInput;
+
+	bool StateAir;
 public:	
 	virtual void Tick(float DeltaTime) override;
 
